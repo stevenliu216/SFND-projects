@@ -1,0 +1,9 @@
+[submodule "SFND_3D_Object_Tracking"]
+	path = SFND_3D_Object_Tracking
+	url = https://github.com/stevenliu216/SFND_3D_Object_Tracking
+[submodule "SFND_2D_Feature_Tracking"]
+	path = SFND_2D_Feature_Tracking
+	url = https://github.com/stevenliu216/SFND_2D_Feature_Tracking
+[submodule "SFND_Lidar_Obstacle_Detection"]
+	path = SFND_Lidar_Obstacle_Detection
+	url = https://github.com/stevenliu216/SFND_Lidar_Obstacle_Detection

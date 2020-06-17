@@ -1,0 +1,125 @@
+## Lesson 2
+
+### Why use Radar?
+Radar compensates for weaknesses in other sensors. For instance, Radar directly measures the velocity of objects. Other sensors have to perform more processing. Radar works indifferently in Day/Night, compared to Cameras.
+
+### The Radar Sensor
+Radar transmits electro-magnetic waves which get received when the waves are reflected back after hitting an object. The received signal is used to compute object distance, velocity, radial angles.
+
+Small size, cheap, automotive quality. Determines targets at long range, accurate velocity, and spatial information. Works in dark/poor weather conditions.
+
+An example Bosch radar consists of:
+- Radar dome, a weatherproof enclosure which protects the antenna, designed to minimally affect the radio waves.
+- Body with separate connector
+- Radar PCB, analog hardware including the transceiver and antenna.
+- PCB for processing and power supply, including DSP unit.
+- Die cast backplane
+
+Tradeoffs vs. Lidar:
+|Properties|Radar rating|Lidar rating|
+|----------|------------|------------|
+|Proximity detection|**4**|2|
+|Range|4|4|
+|Resolution|3|**4**|
+|Works in dark|5|5|
+|Works in bright|5|5|
+|Works in snow/fog/rain|**5**|2|
+|Provides color/contrast|0|0|
+|Detects speed|**5**|4|
+|Sensor size|**5**|0|
+|Sensor cost|**5**|0|
+
+In bad weather, Lidar can fail due to the smaller wavelength. Lidar could cost from $35K to $100K. Radar doesn't have as high resolution, but can generate highly accurate velocity measurement. Radar has a lower manufacturing cost, and can be deployed in a multiple, 360 degree configuration.
+
+Radar can't precisely provide an object's shape. It isn't suitable for classification tasks. 
+
+> Reading: ![How Delphi Developes Radar Sensor Algorithm](https://www.mathworks.com/company/user_stories/delphi-develops-radar-sensor-alignment-algorithm-for-automotive-active-safety-system.html)
+
+### Signal Properties
+Single Wave Parameters:
+$$\lambda = \frac{speed of light}{frequency} $$
+
+Frequency: Measured in Hz. Generally 76Ghz to 81Ghz
+Bandwidth: Difference between highest and lowest frequency components
+Amplitude: Can be in dB/dBm, or mW/W. It is strength of the signal.
+
+Phase: A particular point in time on the cycle of a waveform. Measured in degrees. A complete cycle is 360 degrees. The first derivative of phase, is frequency. This property is useful for measuring dopplar frequency shift for a moving target.
+
+General wave equation: $$ y(t) = A * cos(2\pi * f_c * t + \phi) $$, where A is the amplitude, f_c is the signal frequency, \phi is the phase.
+
+### FMCW (Frequency Modulated Continuous Wave) Radar
+FMCW is a type of Radar which radiates continuous transmission power. It can measure very small ranges to the target. It can simulataneously measure the target range and relative velocity.
+
+FMCW signals ramps up/down in frequency like a sawtooth or triangular signal. This is _Chirp_. The slope of the Chirp signal is $$ \frac{B}{T_s} $$, where B is the frequency bandwidth, T_s is the chirp time.
+
+One _chirp sequence_ or _segment_ contains multiple chirps, and each chirp gets sampled multiple times to get multiple range measurements. This course will sample chirp 1024 times and send 128 chirps per segment.
+
+> Reading: ![Radar Tutorial](https://www.radartutorial.eu/02.basics/Frequency%20Modulated%20Continuous%20Wave%20Radar.en.html)
+
+### FMCW Hardware
+![](../../images/Radar-principles-1.png)
+
+Frequency Synthesizer: Generates the chirp.
+Power Amplifier: Amplifies the signal to reach farther
+Antenna: Converts electrical to electromagnetic waves. It also can focus the signal in a particular direction.
+Mixer: Multiplies the return signal with the original chirp. It will subtract in the frequency domain and gives a frequency shift. Synthesizer Frequency - Return Signal Frequency.
+Processor: Where detection/tracking/clustering algorithms are implemented.
+
+Antenna pattern: The geometric pattern of the strengths of the relative field smitted by the antenna.
+Beamwidth: The field-of-view for the radar.
+![](../../images/Radar-principles-2.png)
+
+Sidelobes: Can generate false positives and interference. Typically, suppress these signals about 30 dB from the main beam.
+
+### Radar Cross Section (RCS)
+![](../../images/Radar-principles-3.png)
+\sigma represents the size and ability of a target to reflect radar energy. Defined in m*m (an area). This property depends on:
+1. The target's physical geometry and exterior features
+2. The direction of the illuminating radar
+3. The transmitting frequency
+4. The reflecting material
+
+> Reading: ![Modelling Automotive Radar Interference](https://arxiv.org/pdf/1607.02434.pdf)
+
+RCS can also be defined in dB. $$ RCS_{dB} = 10 * log( RCS_{m^2} ) $$
+
+### Radar Range Equation
+$$ R_{max} = ( \frac{ P_s * G^2 * \lambda^2 * \sigma }{ P_{Emin} * (r\pi)^3 } )^{1/4} $$
+This equation lets us design the transmitter, receiver, and antenna to have the desired power, gain, and noise performance.
+
+R: Maximum range a radar can detect target
+P_s: Transmitted power from radar (dBm)
+G: Gain of the transmitter/receiver antenna (dBi)
+\lambda: Wavelength (m^2)
+\sigma: RCS (m^2)
+P_E: Minimum received power radar can detect
+
+A target can be detected by finding a large amplitude at a certain frequency band. It would have to have a larger amplitude than the noise (generated by thermal noise).
+
+### MATLAB exercise
+```
+%Operating frequency (Hz)
+fc = 77.0e9;
+
+%Transmitted power (W)
+Pt = 3e-3;
+
+%Antenna Gain (linear)
+G =  10000;
+
+%Minimum Detectable Power
+Ps = 1e-10;
+
+%RCS of a car
+RCS = 100;
+
+%Speed of light
+c = 3*10^8;
+
+%TODO: Calculate the wavelength
+lambda = c / fc;
+
+%TODO : Measure the Maximum Range a Radar can see. 
+R = (Pt  * G.^2 * lambda .^2 * RCS / (Ps*(4*pi).^3)).^(1/4);
+disp(R);
+```
