@@ -1,0 +1,139 @@
+## Lesson 3
+
+### Range, Velocity, and Angle Resolution
+A Radar can resolve two targets based on range, velocity, and angle.
+
+Range resolution: Capability of the radar to distinguish between two targets that are very close to each other in range. If the range resolution is 4 meters, then a radar wouldn't be able to separate a pedestrian 1 meter away from the car.
+
+The range resolution simply depends on the bandwidth of the chirp, so $$ D_{res} = =frac{c}{ 2B_{sweep} } $$
+
+Velocity Resolution: Depends on the number of chirps. Higher number of chirps increases the resolution (at the cost of processing time).
+
+Angle Resolution: Depends on various parameters depending on angle estimation technique used.
+
+### Range Estimation
+We can find the range by c/2 * t. We can find this *t* by measuring the shift in frequency.
+
+$$ R = \frac{c*T_s*f_b}{2*B_{sweep}} $$, where f_b is f_ramp - f_received, T_s is the sweep time, and B_sweep is the chirp bandwidth.
+
+### Coding exercise
+Calculate the range in meters for 4 targets with measured beat frequencies at 0Mhz, 1.1Mhz, 13Mhz, 24Mhz.
+```
+c = 3*10^8;     % [m/s]
+R_max = 300;    % [m]
+resolution = 1; % [m]
+% TODO : Find the Bsweep of chirp for 1 m resolution
+Bsweep = c/2 * resolution;
+
+% TODO : Calculate the chirp time based on the Radar's Max Range
+T_chirp = 5.5 * 2 * R_max / c;
+
+% TODO : define the frequency shifts 
+beat_freq = [0, 1.1e6, 13e6, 24e6];
+calculated_range = c*T_chirp*beat_freq / (2*Bsweep);
+
+% Display the calculated range
+disp(calculated_range);
+```
+
+### Doppler Estimation
+An approaching target would shift an emitted and reflected frequency higher, a receding target would shift both frequencies lower than the transmitted. This doppler shift is directly proportional to the velocity of the target: $$ f_D = \frac{2 * v_r}{\lambda} $$ where f_D is the doppler shift, v_r is the relative velocity, \lambda is the wavelength. So, a receding target has lower frequency and approaching target has higher frequency shift. That means receding = - velocity and approaching = + velocity.
+
+The beat frequency includes both the doppler shift and the range delta. However most automotive radars have a very small f_d in comparison to f_r. This would allow measurement of velocity through the rate of change of phase across multiple chirps. $$ \frac{d\Phi}{dt} = frequency $$
+
+### Coding exercise
+Calculate the velocity in [m/s], of four targets with the doppler frequency shifts 3Khz, 4.5Khz, 11Khz, -3Khz.
+```
+% Doppler Velocity Calculation
+c = 3*10^8;         %speed of light
+frequency = 77e9;   %frequency in Hz
+
+% TODO : Calculate the wavelength
+lambda = c / frequency;
+
+% TODO : Define the doppler shifts in Hz using the information from above 
+fd = [3e3, 4.5e3, 11e3, -3e3]; % [Hz]
+
+% TODO : Calculate the velocity of the targets  fd = 2*vr/lambda
+vr = fd * lambda / 2;
+
+
+% TODO: Display results
+disp(vr)
+```
+
+### Fast Fourier Transform (FFT)
+Radar signals are better processed in the frequency domain. The FFT is used to convert digital time signals to frequency domain, in order to analyze the signal to determine shifts in frequency due to range/doppler. Remember, fourier says any periodic time signal is composed of a finite amount of sine waves with different frequency components. After performing FFT, the radar signals would show a different frequency for each object at different distances.
+
+### Coding exercise
+Use FFT to find the frequency components of a signal with noise. Let sampling frequency be 1Khz and period by 1.5 seconds.
+
+```
+Fs = 1000;            % Sampling frequency                    
+T = 1/Fs;             % Sampling period       
+L = 1500;             % Length of signal
+t = (0:L-1)*T;        % Time vector
+
+% TODO: Form a signal containing a 77 Hz sinusoid of amplitude 0.7 and a 43Hz sinusoid of amplitude 2.
+S = 0.7*sin(2*pi*77*t) + 2*sin(2*pi*43*t);
+
+% Corrupt the signal with noise 
+X = S + 2*randn(size(t));
+
+% Plot the noisy signal in the time domain. It is difficult to identify the frequency components by looking at the signal X(t). 
+plot(1000*t(1:50) ,X(1:50))
+title('Signal Corrupted with Zero-Mean Random Noise')
+xlabel('t (milliseconds)')
+ylabel('X(t)')
+
+% TODO : Compute the Fourier transform of the signal. 
+S_fft = fft(X);
+
+% TODO : Compute the two-sided spectrum P2. Then compute the single-sided spectrum P1 based on P2 and the even-valued signal length L.
+P2 = abs(S_fft/L);
+P1 = P2(1: L/2 + 1);
+
+% Plotting
+f = Fs*(0:(L/2))/L;
+plot(f,P1) 
+title('Single-Sided Amplitude Spectrum of X(t)')
+xlabel('f (Hz)')
+ylabel('|P1(f)|')
+```
+
+### 2D FFT
+The first FFT is performed to get range vs time, which is the beat frequency, amplitude, and phase for each target. A second FFT is performed to get range vs doppler frequency, which is the rate of change of phase.
+
+![](../../images/Radar-principles-4.png)
+
+The output of the 2D FFT can be visualized as a heatmap. It is called **Range Doppler Map**.
+
+### Coding Exercise
+2D FFT in Matlab. Let the signal be a MxN matrix, where M is the size of the range FFT, and N is the size of the Doppler FFT samples.
+```
+signal = reshape(signal, [M N]);     % shape as MxN matrix
+signal_fft = fft2(signal, M, N);     % 2D FFT, it will pad with 0s to make the MxN matrix
+signal_fft = fftshift(signal_fft);   % shift zero-frequency terms to center of the array
+signal_fft = abs(signal_fft);        % magnitude
+imagesc(signal_fft);                 % visualization
+```
+![Tutorial link](https://www.mathworks.com/help/matlab/ref/fft2.html)
+```
+% 2-D Transform
+% The 2-D Fourier transform is useful for processing 2-D signals and other 2-D data such as images.
+% Create and plot 2-D data with repeated blocks.
+
+P = peaks(20);
+X = repmat(P,[5 10]);
+imagesc(X)
+
+% TODO : Compute the 2-D Fourier transform of the data.  
+signal_fft = fft2(X, 100, 200);
+
+% Shift the zero-frequency component to the center of the output, and 
+signal_fft = fftshift(signal_fft);
+signal_fft = abs(signal_fft);
+
+% plot the resulting 100-by-200 matrix, which is the same size as X.
+imagesc(signal_fft);
+```
