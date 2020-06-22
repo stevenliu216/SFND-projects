@@ -1,0 +1,29 @@
+## Lesson 5
+
+### Clustering
+> Reading: [IEEE paper](https://ieeexplore.ieee.org/document/7226315)
+
+The object tracking is computationally expensive and tracking multiple targets simultaneously requires lots of processing power and memory. Due to the advancements in radar technology and increasing sensing resolutions, a radar can generate detections from plentitude of scattering points on the target. If a tracker is assigned to every detection from the same target, then it can overburden the processing unit. Hence, it is important to cluster the detections from every target and assign a single track for each.
+
+The clustering implementation above uses the following steps:
+1. If the detections are from same sensor, then loop through every single detection point and measure the euclidean distance between all of them.
+2. Keep running the loop until the detection list is empty
+
+Implement the following within the while loop:
+3. Pick the first detection in the check list and check for its clustering neighbors.
+4. If the distance between the first pick and remaining detections is less than the vehicle size, then group those detections and their respective radar sensor measurements, including range and velocity.
+5. For the group, take the mean of the range and velocity measurements.
+> Note: the radar measurement vector has 6 values - where range and velocity for x and y coordinates reside at indices 1,2, 4, and 5: [x, y, - , Vx, Vy, -]
+6. Create a new Cluster ID. Then, assign all the group detections to the same ID.
+7. Further, assign cluster, the mean range and velocity.
+8. In the end, delete from the list the detections which have already been assigned to a cluster.
+9. Keep repeating the process until the detection list is empty.
+
+### Kalman Tracking
+The purpose of the Kalman filter is to estimate the state of a tracked vehicle. Here, "state" could include the position, velocity, acceleration or other properties of the vehicle being tracked. The Kalman filter uses measurements that are observed over time that contain noise or random variations and other inaccuracies, and produces values that tend to be closer to the true values of the measurements and their associated calculated values. It is the central algorithm to the majority of all modern radar tracking systems.
+
+The Kalman Filter has a prediction step and an update state. In the prediction step, the target vehicle's motion model is used to predicted the next state. In the update step, the sensor data is combined with the prediction step to produce a best estimate (if linear + unbiased).
+
+> [Tutorial from MATLAB](https://www.youtube.com/watch?v=mwn8xhgNpFY&list=PLn8PRpmsu08pzi6EMiYnR-076Mh-q3tWr)
+
+### MATLAB Sensor Fusion Guided Walkthrough
