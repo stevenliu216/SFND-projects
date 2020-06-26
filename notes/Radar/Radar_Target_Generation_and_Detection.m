@@ -101,7 +101,7 @@ signal_fft = signal_fft(1: Nr/2 + 1);
 
 %plotting the range
 figure ('Name','Range from First FFT')
-subplot(2,1,1)
+%subplot(2,1,1)
 
  % *%TODO* :
  % plot FFT output 
@@ -147,18 +147,18 @@ figure,surf(doppler_axis,range_axis,RDM);
 % *%TODO* :
 %Select the number of Training Cells in both the dimensions.
 % The RD Map is 512 by 128
-Tr = 10;
-Td = 20;
+Tr = 12;
+Td = 28;
 
 % *%TODO* :
 %Select the number of Guard Cells in both dimensions around the Cell under 
 %test (CUT) for accurate estimation
 Gr = 4;
-Gd = 4;
+Gd = 8;
 
 % *%TODO* :
 % offset the threshold by SNR value in dB
-offset = 5;
+offset = 15.5;
 
 % *%TODO* :
 %Create a vector to store noise_level for each iteration on training cells
@@ -176,18 +176,30 @@ noise_level = zeros(1,1);
 %Further add the offset to it to determine the threshold. Next, compare the
 %signal under CUT with this threshold. If the CUT level > threshold assign
 %it a value of 1, else equate it to 0.
-for i=1:size(RDM,1)
-    for j=1:size(RDM,2)
+grid_size = (2*Tr+2*Gr+1)*(2*Td+2*Gd+1);
+guard_size = (2*Gr+1)*(2*Gd+1);
+train_size = grid_size - guard_size;
+RDM_thresholded = zeros(size(RDM));
+for i=1:size(RDM,1)-(1+2*Td+2*Gd)
+    for j=1:size(RDM,2)-(1+2*Tr+2*Gr)
+        % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing
+        % CFAR
+        grid_mask = (ones(2*Tr+2*Gr+1,2*Td+2*Gd+1) == 1);
+        grid_mask((1+Tr):(1+Tr+2*Gr), (1+Td):(1+Td+2*Gd)) = false;
+        RDM_region = RDM(1:(1+2*Tr+2*Gr), 1:(1+2*Td+2*Gd));
+        training_cells = RDM_region(grid_mask);
         
+        threshold = sum(db2pow(training_cells)) / train_size; % Average noise in training cells
+        threshold = pow2db(threshold) + offset; % add offset in log scale
         
+        CUT = RDM(i+Td+Gd, j+Tr+Gr);
+        if (CUT > threshold)
+            RDM_thresholded(i+Td+Gd, j+Tr+Gr) = 1;
+        else
+            RDM_thresholded(i+Td+Gd, j+Tr+Gr) = 0;
+        end
     end
 end
-   % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing
-   % CFAR
-
-
-
-
 
 % *%TODO* :
 % The process above will generate a thresholded block, which is smaller 
@@ -206,7 +218,7 @@ end
 % *%TODO* :
 %display the CFAR output using the Surf function like we did for Range
 %Doppler Response output.
-figure,surf(doppler_axis,range_axis,'replace this with output');
+figure,surf(doppler_axis,range_axis,RDM_thresholded);
 colorbar;
 
 
